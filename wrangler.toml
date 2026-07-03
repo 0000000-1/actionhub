@@ -1,0 +1,7 @@
+name = "actionhubv2"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "."
+
+[[kv_namespaces]]
+binding = "ACTION_HUB_KV"
+id = "179d5fbe5ef347019cb5d30f0f1e3142"
