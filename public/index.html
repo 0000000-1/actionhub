@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Action Hub</title>
+  <style>
+    * { 
+      margin: 0; padding: 0; box-sizing: border-box; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+      -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    }
+
+    :root {
+      --grad-c1: #93c5fd;
+      --grad-c2: #c4b5fd;
+      --grad-c3: #f0abfc;
+      --grad-c4: #a5f3fc;
+    }
+    
+    html, body { height: 100%; }
+
+    body { 
+      background-color: #f1f5f9; color: #0f172a; 
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; padding: 20px; position: relative;
+      overflow-x: hidden;
+    }
+
+    .bg-layer { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: #f1f5f9; }
+    .bg-blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.55; will-change: transform; transition: background 1.2s ease; }
+    .blob-1 { width: 55vmax; height: 55vmax; top: -20vmax; left: -15vmax; background: radial-gradient(circle at 30% 30%, var(--grad-c1), transparent 70%); animation: floatA 22s ease-in-out infinite; }
+    .blob-2 { width: 50vmax; height: 50vmax; bottom: -20vmax; right: -15vmax; background: radial-gradient(circle at 60% 60%, var(--grad-c2), transparent 70%); animation: floatB 26s ease-in-out infinite; }
+    .blob-3 { width: 42vmax; height: 42vmax; top: 30%; left: 50%; background: radial-gradient(circle at 50% 50%, var(--grad-c3), transparent 70%); animation: floatC 30s ease-in-out infinite; }
+    .blob-4 { width: 38vmax; height: 38vmax; bottom: 10%; left: -10vmax; background: radial-gradient(circle at 50% 50%, var(--grad-c4), transparent 70%); animation: floatD 24s ease-in-out infinite; }
+
+    @keyframes floatA { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(8vmax,6vmax) scale(1.1);} 66%{transform:translate(-4vmax,10vmax) scale(0.95);} }
+    @keyframes floatB { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(-10vmax,-6vmax) scale(1.08);} 66%{transform:translate(6vmax,-10vmax) scale(0.92);} }
+    @keyframes floatC { 0%,100%{transform:translate(-50%,0) scale(1);} 50%{transform:translate(-50%,-8vmax) scale(1.15);} }
+    @keyframes floatD { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(10vmax,-8vmax) scale(1.1);} }
+    @media (prefers-reduced-motion: reduce) { .bg-blob { animation: none !important; } }
+    
+    .hub-container { 
+      width: 100%; max-width: 400px; background: rgba(255, 255, 255, 0.82); 
+      backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%);
+      border: 1px solid rgba(226, 232, 240, 0.8); border-radius: 20px; 
+      box-shadow: 0 10px 35px -8px rgba(0, 0, 0, 0.12); 
+      padding: 32px 24px; display: flex; flex-direction: column; gap: 24px; 
+      position: relative; z-index: 1;
+    }
+
+    .header { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; }
+    .company-logo { width: 64px; height: 64px; background: #eff6ff; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; border: 1px solid #bfdbfe; overflow: hidden; position: relative; }
+    .logo-img { width: 100%; height: 100%; object-fit: cover; display: none; }
+    .company-title { font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; }
+    .company-subtitle { color: #64748b; font-size: 13px; line-height: 1.4; }
+    .status-badge { padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+    .open { background: #d1fae5; color: #065f46; }
+    .closed { background: #fee2e2; color: #991b1b; }
+    .links-stack { display: flex; flex-direction: column; gap: 12px; }
+    .error-text { color: #b91c1c; font-size: 11px; margin-top: 4px; min-height: 14px; }
+    .link-limit-note { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 4px; }
+    .status-msg { text-align: center; font-size: 12px; color: #64748b; padding: 8px; }
+    .status-msg.error { color: #b91c1c; }
+
+    .dynamic-link-container { position: relative; width: 100%; }
+    .dynamic-link { display: flex; align-items: center; justify-content: space-between; text-decoration: none; padding: 15px 19px; border-radius: 12px; font-weight: 600; font-size: 14px; -webkit-tap-highlight-color: transparent; transition: background 0.2s cubic-bezier(0.4,0,0.2,1), border-color 0.2s cubic-bezier(0.4,0,0.2,1), color 0.2s cubic-bezier(0.4,0,0.2,1); }
+    .secondary-action-btn { background: #f8fafc; color: #334155; border: 1px solid #e2e8f0; padding-right: 45px; }
+    .secondary-action-btn:hover { background: #e2e8f0 !important; border-color: #cbd5e1 !important; color: #0f172a !important; }
+    .primary-action-btn { background: #1d4ed8 !important; color: #ffffff !important; border: 1px solid transparent !important; padding-right: 45px; }
+    .primary-action-btn:hover { border-color: #ffffff !important; filter: brightness(1.08) !important; box-shadow: 0 4px 12px rgba(29,78,216,0.12); }
+    .arrow { color: #94a3b8; font-size: 14px; display: inline-block; transition: transform 0.2s ease; }
+    .secondary-action-btn:hover .arrow { transform: scale(1.15); color: #1d4ed8; }
+    .primary-action-btn .arrow { color: #ffffff !important; }
+    .primary-action-btn:hover .arrow { transform: scale(1.15); }
+    .delete-node-btn { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; font-size: 13px; cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center; transition: color 0.2s; z-index: 15; display: none; }
+    .delete-node-btn:hover { color: #ef4444; transform: translateY(-50%) scale(1.15); }
+    .control-actions-row { display: flex; gap: 8px; justify-content: center; margin-top: 4px; flex-wrap: wrap; }
+    .action-pill-btn { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; padding: 6px 14px; border-radius: 8px; cursor: pointer; transition: all 0.2s; border: none; }
+    .btn-edit { color: #1d4ed8; background: #eff6ff; border: 1px solid #bfdbfe; }
+    .btn-edit:hover { background: #dbeafe; }
+    .btn-share { color: #0f172a; background: #f1f5f9; border: 1px solid #e2e8f0; display: none; }
+    .btn-share:hover { background: #e2e8f0; }
+    .footer-credit { text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 16px; }
+    .form-submit-btn { width: 100%; padding: 12px; margin-top: 6px; border: none; border-radius: 10px; background: #1d4ed8; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; }
+    .form-submit-btn:hover { filter: brightness(1.08); }
+    .form-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.4); backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal-window { background: #ffffff; width: 100%; max-width: 360px; padding: 24px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); max-height: 88vh; overflow-y: auto; }
+    .modal-overlay.active .modal-window { transform: scale(1); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .modal-title { font-size: 11px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.05em; }
+    .modal-close { background: none; border: none; font-size: 20px; color: #94a3b8; cursor: pointer; line-height: 1; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 6px; text-transform: uppercase; }
+    .form-input { width: 100%; padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #0f172a; font-weight: 500; outline: none; user-select: text; }
+    .form-input:focus { border-color: #1d4ed8; background: #ffffff; }
+    .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+    .file-custom-btn { border: 1px dashed #bfdbfe; color: #1d4ed8; background: #eff6ff; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; display: block; cursor: pointer; transition: background 0.2s; }
+    .file-input-wrapper:hover .file-custom-btn { background: #dbeafe; }
+    .file-input-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; }
+    .help-text { font-size: 11px; color: #64748b; line-height: 1.5; margin-bottom: 12px; }
+    .token-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 14px; font-size: 12px; color: #92400e; word-break: break-all; user-select: text; margin-bottom: 12px; }
+    .token-box strong { display: block; margin-bottom: 6px; color: #78350f; }
+  </style>
+</head>
+<body>
+
+  <div class="bg-layer" id="bg-layer">
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+    <div class="bg-blob blob-4"></div>
+  </div>
+
+  <div class="hub-container">
+    <header class="header">
+      <div class="company-logo" id="logo-frame">
+        <span id="display-emoji">💼</span>
+        <img id="display-avatar" class="logo-img" alt="Branding Avatar">
+      </div>
+      <h2 id="display-title" class="company-title">Action Hub</h2>
+      <p id="display-subtitle" class="company-subtitle">Loading...</p>
+      <div id="live-status" class="status-badge">Checking schedule...</div>
+
+      <div class="control-actions-row">
+        <button onclick="handleEditButtonClick()" class="action-pill-btn btn-edit" id="mode-action-btn">Edit This Page</button>
+        <button onclick="copyShareLink()" class="action-pill-btn btn-share" id="share-action-btn">Copy Page Link</button>
+      </div>
+    </header>
+
+    <main class="links-stack" id="links-container">
+      <p class="status-msg" id="status-msg">Loading page...</p>
+    </main>
+
+    <footer class="footer-credit" id="footer-tag">Powered by Action Hub</footer>
+  </div>
+
+  <!-- EDIT / CREATE modal -->
+  <div id="editor-modal" class="modal-overlay">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3 class="modal-title" id="form-modal-title">Set Up Your Page</h3>
+        <button onclick="closeEditorModal()" class="modal-close">&times;</button>
+      </div>
+
+      <form id="profile-management-form" onsubmit="handleFormCommit(event)">
+        <div id="slug-field-group">
+          <div class="form-group">
+            <label class="form-label">Page Web Address</label>
+            <input type="text" id="inp-slug" placeholder="e.g., joes-cafe" class="form-input">
+            <div class="help-text" id="slug-help">Your page will live at <span id="slug-preview">yoursite.com/b/your-name</span>. Lowercase letters, numbers, hyphens only.</div>
+            <div class="error-text" id="slug-error"></div>
+          </div>
+        </div>
+
+        <div id="profile-fields-group">
+          <div class="form-group">
+            <label class="form-label">Business / Brand Name</label>
+            <input type="text" id="inp-brand-title" required maxlength="60" placeholder="e.g., Joe's Cafe" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Short Description</label>
+            <input type="text" id="inp-brand-sub" required maxlength="120" placeholder="e.g., Coffee & pastries downtown" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fallback Emoji (if no photo)</label>
+            <input type="text" id="inp-brand-emoji" required maxlength="2" placeholder="e.g., ☕" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Logo / Photo (optional, max 75KB)</label>
+            <div class="file-input-wrapper">
+              <span class="file-custom-btn" id="file-label-text">Choose Photo File...</span>
+              <input type="file" id="inp-brand-file" accept="image/jpeg,image/png,image/webp" onchange="processLocalFileSelection(this)">
+            </div>
+          </div>
+        </div>
+
+        <div id="link-fields-group" style="border-top: 1px solid #e2e8f0; padding-top: 14px; margin-top: 14px;">
+          <label class="form-label">Links</label>
+          <div id="link-rows"></div>
+          <div class="link-limit-note" id="link-limit-note"></div>
+          <button type="button" onclick="addLinkRow()" class="action-pill-btn btn-edit" style="margin-top:8px;">+ Add Link</button>
+        </div>
+
+        <div class="error-text" id="form-error"></div>
+        <button type="submit" id="form-action-submit-btn" class="form-submit-btn">Publish Page</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOKEN reveal modal (shown once at creation) -->
+  <div id="token-modal" class="modal-overlay">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3 class="modal-title">Save Your Edit Link!</h3>
+        <button onclick="closeTokenModal()" class="modal-close">&times;</button>
+      </div>
+      <div class="help-text">
+        This is the <strong>only time</strong> you'll see this. Bookmark it or save it somewhere safe — it's how you'll come back to edit this page later. Anyone with this link can edit the page, so don't share it publicly.
+      </div>
+      <div class="token-box" id="token-box">
+        <strong>Your private edit link:</strong>
+        <span id="token-link-text"></span>
+      </div>
+      <button type="button" onclick="copyEditLink()" class="form-submit-btn">Copy Edit Link</button>
+    </div>
+  </div>
+
+  <script>
+    /* ============================================================
+       CONFIG
+       ============================================================ */
+    const API_BASE = ''; // same-origin; set to 'https://your-worker.your-subdomain.workers.dev' if hosted separately
+    const MAX_LINKS = 8;
+
+    /* ============================================================
+       STATE
+       ============================================================ */
+    let currentSlug = null;      // slug of the page being viewed (null = "create new" mode)
+    let editToken = null;        // present only if we're the owner (loaded from localStorage for this slug)
+    let liveProfileState = {
+      title: '', sub: '', emoji: '💼', imageBlob: '', links: []
+    };
+    let base64TempStorage = '';
+    let isOwnerEditingMode = false;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      calculateCorporateHours();
+      routeFromUrl();
+    });
+
+    /* ============================================================
+       ROUTING: /b/:slug in the path decides what we load
+       (Note: server also needs to serve this same index.html for
+       /b/:slug and /b/:slug/edit/:token routes — see README.)
+       ============================================================ */
+    async function routeFromUrl() {
+      const path = window.location.pathname;
+      const parts = path.split('/').filter(Boolean); // ["b", "slug"] or ["b","slug","edit","token"]
+
+      if (parts[0] === 'b' && parts[1]) {
+        currentSlug = parts[1];
+
+        if (parts[2] === 'edit' && parts[3]) {
+          // Owner arrived via their private edit link.
+          editToken = parts[3];
+          rememberEditToken(currentSlug, editToken);
+        } else {
+          // Public visitor — check if we happen to have a saved token for this slug on this device.
+          editToken = recallEditToken(currentSlug);
+        }
+
+        await loadPageFromServer(currentSlug);
+      } else {
+        // No slug in the URL — show the "create a new page" entry state.
+        showCreateNewState();
+      }
+    }
+
+    function rememberEditToken(slug, token) {
+      try { localStorage.setItem('editToken:' + slug, token); } catch {}
+    }
+    function recallEditToken(slug) {
+      try { return localStorage.getItem('editToken:' + slug); } catch { return null; }
+    }
+
+    /* ============================================================
+       LOAD a published page (public GET, no auth needed to view)
+       ============================================================ */
+    async function loadPageFromServer(slug) {
+      setStatusMsg('Loading page...');
+      try {
+        const res = await fetch(`${API_BASE}/api/pages/${encodeURIComponent(slug)}`);
+        if (res.status === 404) {
+          setStatusMsg(`No page found at "${slug}". You can create it.`, true);
+          showCreateNewState(slug);
+          return;
+        }
+        if (!res.ok) throw new Error('Failed to load page');
+
+        const data = await res.json();
+        liveProfileState = normalizeState(data.state);
+        isOwnerEditingMode = !!editToken;
+
+        document.getElementById('share-action-btn').style.display = isOwnerEditingMode ? 'inline-block' : 'none';
+        document.getElementById('mode-action-btn').textContent = isOwnerEditingMode ? 'Edit This Page' : 'Create Your Own Hub';
+        document.getElementById('mode-action-btn').setAttribute('onclick', isOwnerEditingMode ? 'handleEditButtonClick()' : "window.location.href='/'");
+        document.getElementById('footer-tag').textContent = isOwnerEditingMode ? 'Powered by Action Hub' : 'Powered by Action Hub — Create your own free page';
+
+        renderActiveProfileCanvas();
+      } catch (err) {
+        console.error(err);
+        setStatusMsg('Something went wrong loading this page. Please refresh.', true);
+      }
+    }
+
+    function showCreateNewState(prefillSlug) {
+      currentSlug = null;
+      editToken = null;
+      isOwnerEditingMode = true;
+      liveProfileState = { title: '', sub: '', emoji: '💼', imageBlob: '', links: [] };
+      document.getElementById('display-title').textContent = 'Action Hub';
+      document.getElementById('display-subtitle').textContent = 'Create a free page for your business in under a minute';
+      document.getElementById('share-action-btn').style.display = 'none';
+      document.getElementById('mode-action-btn').textContent = 'Create Your Page';
+      document.getElementById('mode-action-btn').setAttribute('onclick', 'openEditorModal()');
+      document.getElementById('links-container').innerHTML = '';
+      const cta = document.createElement('p');
+      cta.className = 'status-msg';
+      cta.textContent = 'No page yet — tap "Create Your Page" to get started.';
+      document.getElementById('links-container').appendChild(cta);
+
+      if (prefillSlug) {
+        setTimeout(() => openEditorModal(prefillSlug), 50);
+      }
+    }
+
+    function setStatusMsg(text, isError) {
+      const el = document.getElementById('status-msg');
+      if (el) { el.textContent = text; el.className = isError ? 'status-msg error' : 'status-msg'; }
+    }
+
+    function normalizeState(state) {
+      return {
+        title: state.title || 'Action Hub',
+        sub: state.sub || '',
+        emoji: state.emoji || '💼',
+        imageBlob: state.imageBlob || '',
+        links: Array.isArray(state.links) ? state.links.slice(0, MAX_LINKS) : [],
+      };
+    }
+
+    /* ============================================================
+       RENDER (same XSS-safe DOM approach as before — textContent only)
+       ============================================================ */
+    function renderActiveProfileCanvas() {
+      document.getElementById('display-title').textContent = liveProfileState.title;
+      document.getElementById('display-subtitle').textContent = liveProfileState.sub;
+
+      const imgElement = document.getElementById('display-avatar');
+      const fallbackEmoji = document.getElementById('display-emoji');
+
+      if (liveProfileState.imageBlob && liveProfileState.imageBlob.startsWith('data:image')) {
+        imgElement.src = liveProfileState.imageBlob;
+        imgElement.style.display = 'block';
+        fallbackEmoji.style.display = 'none';
+        extractPaletteFromImage(liveProfileState.imageBlob);
+      } else {
+        imgElement.style.display = 'none';
+        fallbackEmoji.style.display = 'block';
+        fallbackEmoji.textContent = liveProfileState.emoji || '💼';
+        resetPaletteToDefault();
+      }
+
+      const container = document.getElementById('links-container');
+      container.innerHTML = '';
+
+      if (liveProfileState.links.length === 0) {
+        const emptyMsg = document.createElement('p');
+        emptyMsg.className = 'status-msg';
+        emptyMsg.textContent = 'No active links on this page yet.';
+        container.appendChild(emptyMsg);
+      } else {
+        liveProfileState.links.forEach((link) => {
+          const isMaster = container.children.length === 0;
+          const actionClass = isMaster ? 'primary-action-btn' : 'secondary-action-btn';
+
+          const wrapper = document.createElement('div');
+          wrapper.className = 'dynamic-link-container';
+
+          const anchor = document.createElement('a');
+          anchor.href = isSafeUrl(link.url) ? link.url : '#';
+          anchor.target = '_blank';
+          anchor.rel = 'noopener noreferrer';
+          anchor.className = `dynamic-link ${actionClass}`;
+
+          const labelSpan = document.createElement('span');
+          labelSpan.textContent = link.title;
+
+          const arrowSpan = document.createElement('span');
+          arrowSpan.className = 'arrow';
+          arrowSpan.textContent = '➔';
+
+          anchor.appendChild(labelSpan);
+          anchor.appendChild(arrowSpan);
+          wrapper.appendChild(anchor);
+          container.appendChild(wrapper);
+        });
+      }
+    }
+
+    function isSafeUrl(rawUrl) {
+      try {
+        const u = new URL(rawUrl);
+        return u.protocol === 'https:' || u.protocol === 'http:';
+      } catch { return false; }
+    }
+
+    /* ============================================================
+       PALETTE ENGINE (unchanged from the original)
+       ============================================================ */
+    function resetPaletteToDefault() {
+      const root = document.documentElement.style;
+      root.setProperty('--grad-c1', '#93c5fd');
+      root.setProperty('--grad-c2', '#c4b5fd');
+      root.setProperty('--grad-c3', '#f0abfc');
+      root.setProperty('--grad-c4', '#a5f3fc');
+    }
+
+    function extractPaletteFromImage(dataUrl) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function () {
+        try {
+          const sampleSize = 48;
+          const canvas = document.createElement('canvas');
+          canvas.width = sampleSize; canvas.height = sampleSize;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, sampleSize, sampleSize);
+          const pixels = ctx.getImageData(0, 0, sampleSize, sampleSize).data;
+
+          const buckets = {};
+          for (let i = 0; i < pixels.length; i += 4) {
+            const r = pixels[i], g = pixels[i+1], b = pixels[i+2], a = pixels[i+3];
+            if (a < 128) continue;
+            const max = Math.max(r,g,b), min = Math.min(r,g,b);
+            const lightness = (max+min)/2;
+            const sat = max === min ? 0 : (max-min)/(255-Math.abs(2*lightness-255));
+            if (lightness > 245 || lightness < 12 || sat < 0.12) continue;
+            const key = [Math.round(r/24), Math.round(g/24), Math.round(b/24)].join(',');
+            if (!buckets[key]) buckets[key] = { r:0, g:0, b:0, count:0 };
+            buckets[key].r += r; buckets[key].g += g; buckets[key].b += b; buckets[key].count++;
+          }
+
+          let sortedBuckets = Object.values(buckets).sort((a,b) => b.count - a.count);
+          if (sortedBuckets.length === 0) { resetPaletteToDefault(); return; }
+
+          const toHex = (bucket) => rgbToHex(
+            Math.round(bucket.r/bucket.count), Math.round(bucket.g/bucket.count), Math.round(bucket.b/bucket.count)
+          );
+
+          const palette = [];
+          for (const bucket of sortedBuckets) {
+            const hex = toHex(bucket);
+            if (!palette.includes(hex)) palette.push(hex);
+            if (palette.length === 4) break;
+          }
+          while (palette.length < 4) palette.push(palette[palette.length-1] || '#93c5fd');
+
+          const root = document.documentElement.style;
+          root.setProperty('--grad-c1', softenColor(palette[0]));
+          root.setProperty('--grad-c2', softenColor(palette[1]));
+          root.setProperty('--grad-c3', softenColor(palette[2]));
+          root.setProperty('--grad-c4', softenColor(palette[3]));
+        } catch (err) {
+          console.error('Palette extraction failed:', err);
+          resetPaletteToDefault();
+        }
+      };
+      img.onerror = () => resetPaletteToDefault();
+      img.src = dataUrl;
+    }
+
+    function rgbToHex(r,g,b) { return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join(''); }
+    function softenColor(hex) {
+      const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+      const mix = (c) => Math.round(c + (255-c)*0.35);
+      return rgbToHex(mix(r), mix(g), mix(b));
+    }
+
+    /* ============================================================
+       BUSINESS HOURS BADGE (unchanged)
+       ============================================================ */
+    function calculateCorporateHours() {
+      const currentHour = new Date().getHours();
+      const badge = document.getElementById('live-status');
+      if (currentHour >= 9 && currentHour < 18) {
+        badge.textContent = '● Open Now'; badge.className = 'status-badge open';
+      } else {
+        badge.textContent = '● Out of Office'; badge.className = 'status-badge closed';
+      }
+    }
+
+    /* ============================================================
+       EDITOR MODAL
+       ============================================================ */
+    function handleEditButtonClick() {
+      openEditorModal();
+    }
+
+    function openEditorModal(prefillSlug) {
+      base64TempStorage = liveProfileState.imageBlob || '';
+      document.getElementById('form-error').textContent = '';
+
+      const creatingNew = !currentSlug;
+      document.getElementById('slug-field-group').style.display = creatingNew ? 'block' : 'none';
+      document.getElementById('form-modal-title').textContent = creatingNew ? 'Set Up Your Page' : 'Edit Your Page';
+      document.getElementById('form-action-submit-btn').textContent = creatingNew ? 'Publish Page' : 'Save Changes';
+
+      if (creatingNew) {
+        document.getElementById('inp-slug').value = prefillSlug || '';
+        document.getElementById('slug-error').textContent = '';
+      }
+
+      document.getElementById('inp-brand-title').value = liveProfileState.title || '';
+      document.getElementById('inp-brand-sub').value = liveProfileState.sub || '';
+      document.getElementById('inp-brand-emoji').value = liveProfileState.emoji || '';
+      document.getElementById('file-label-text').textContent = base64TempStorage ? '✓ Current Photo Kept' : 'Choose Photo File...';
+
+      renderLinkRows();
+      document.getElementById('editor-modal').classList.add('active');
+    }
+
+    function closeEditorModal() {
+      document.getElementById('editor-modal').classList.remove('active');
+    }
+
+    function processLocalFileSelection(inputNode) {
+      const selectedFile = inputNode.files[0];
+      if (!selectedFile) return;
+      if (selectedFile.size > 76800) {
+        alert('Photo is too large. Please choose an image under 75KB.');
+        inputNode.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        base64TempStorage = e.target.result;
+        document.getElementById('file-label-text').textContent = `✓ Photo Loaded (${selectedFile.name.slice(0,10)}...)`;
+      };
+      reader.readAsDataURL(selectedFile);
+    }
+
+    /* ---- link rows (editable list inside the modal) ---- */
+    let editingLinks = [];
+
+    function renderLinkRows() {
+      editingLinks = liveProfileState.links.map(l => ({ ...l }));
+      redrawLinkRows();
+    }
+
+    function redrawLinkRows() {
+      const container = document.getElementById('link-rows');
+      container.innerHTML = '';
+      editingLinks.forEach((link, idx) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; gap:6px; margin-bottom:8px; align-items:flex-start;';
+
+        const titleInput = document.createElement('input');
+        titleInput.className = 'form-input';
+        titleInput.placeholder = 'Link name';
+        titleInput.maxLength = 60;
+        titleInput.value = link.title;
+        titleInput.style.flex = '1';
+        titleInput.addEventListener('input', () => { editingLinks[idx].title = titleInput.value; });
+
+        const urlInput = document.createElement('input');
+        urlInput.className = 'form-input';
+        urlInput.placeholder = 'https://...';
+        urlInput.value = link.url;
+        urlInput.style.flex = '1.4';
+        urlInput.addEventListener('input', () => { editingLinks[idx].url = urlInput.value; });
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.textContent = '×';
+        removeBtn.style.cssText = 'background:#fee2e2; color:#991b1b; border:none; border-radius:8px; width:36px; font-size:16px; cursor:pointer;';
+        removeBtn.addEventListener('click', () => { editingLinks.splice(idx, 1); redrawLinkRows(); });
+
+        row.appendChild(titleInput);
+        row.appendChild(urlInput);
+        row.appendChild(removeBtn);
+        container.appendChild(row);
+      });
+
+      const note = document.getElementById('link-limit-note');
+      note.textContent = `${editingLinks.length}/${MAX_LINKS} links`;
+    }
+
+    function addLinkRow() {
+      if (editingLinks.length >= MAX_LINKS) {
+        alert(`You can add up to ${MAX_LINKS} links.`);
+        return;
+      }
+      editingLinks.push({ title: '', url: '' });
+      redrawLinkRows();
+    }
+
+    /* ============================================================
+       SUBMIT: create or update
+       ============================================================ */
+    async function handleFormCommit(event) {
+      event.preventDefault();
+      const errorEl = document.getElementById('form-error');
+      errorEl.textContent = '';
+
+      const creatingNew = !currentSlug;
+      let slugToUse = currentSlug;
+
+      if (creatingNew) {
+        slugToUse = normalizeSlugClient(document.getElementById('inp-slug').value);
+        const slugError = document.getElementById('slug-error');
+        if (!isValidSlugClient(slugToUse)) {
+          slugError.textContent = 'Use 3-48 lowercase letters, numbers, or hyphens.';
+          return;
+        }
+        slugError.textContent = '';
+      }
+
+      const title = document.getElementById('inp-brand-title').value.trim();
+      const sub = document.getElementById('inp-brand-sub').value.trim();
+      const emoji = document.getElementById('inp-brand-emoji').value.trim();
+
+      const cleanedLinks = [];
+      for (const link of editingLinks) {
+        const t = (link.title || '').trim();
+        const u = (link.url || '').trim();
+        if (!t && !u) continue; // skip fully empty rows
+        if (!t || !isSafeUrl(u)) {
+          errorEl.textContent = 'Each link needs a name and a valid http(s):// URL.';
+          return;
+        }
+        cleanedLinks.push({ title: t, url: u });
+      }
+
+      const newState = {
+        title, sub, emoji,
+        imageBlob: base64TempStorage,
+        links: cleanedLinks,
+      };
+
+      const submitBtn = document.getElementById('form-action-submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = creatingNew ? 'Publishing...' : 'Saving...';
+
+      try {
+        if (creatingNew) {
+          const res = await fetch(`${API_BASE}/api/pages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug: slugToUse, state: newState }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            errorEl.textContent = data.error || 'Something went wrong. Try again.';
+            return;
+          }
+          currentSlug = data.slug;
+          editToken = data.editToken;
+          rememberEditToken(currentSlug, editToken);
+
+          liveProfileState = newState;
+          closeEditorModal();
+          renderActiveProfileCanvas();
+          isOwnerEditingMode = true;
+          document.getElementById('share-action-btn').style.display = 'inline-block';
+          document.getElementById('mode-action-btn').textContent = 'Edit This Page';
+          document.getElementById('mode-action-btn').setAttribute('onclick', 'handleEditButtonClick()');
+
+          showTokenModal(currentSlug, editToken);
+        } else {
+          const res = await fetch(`${API_BASE}/api/pages/${encodeURIComponent(currentSlug)}/${encodeURIComponent(editToken)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ state: newState }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            errorEl.textContent = data.error || 'Something went wrong saving your changes.';
+            return;
+          }
+          liveProfileState = newState;
+          closeEditorModal();
+          renderActiveProfileCanvas();
+        }
+      } catch (err) {
+        console.error(err);
+        errorEl.textContent = 'Network error. Please try again.';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = creatingNew ? 'Publish Page' : 'Save Changes';
+      }
+    }
+
+    function normalizeSlugClient(raw) {
+      return String(raw).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+    function isValidSlugClient(slug) {
+      return /^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug) && slug.length >= 3 && slug.length <= 48;
+    }
+
+    /* ============================================================
+       TOKEN REVEAL MODAL (shown once, right after creation)
+       ============================================================ */
+    function showTokenModal(slug, token) {
+      const link = `${window.location.origin}/b/${slug}/edit/${token}`;
+      document.getElementById('token-link-text').textContent = link;
+      document.getElementById('token-modal').classList.add('active');
+      // Also push the URL bar to the edit link so a refresh doesn't lose owner mode.
+      window.history.replaceState({}, '', `/b/${slug}/edit/${token}`);
+    }
+    function closeTokenModal() {
+      document.getElementById('token-modal').classList.remove('active');
+    }
+    function copyEditLink() {
+      const link = document.getElementById('token-link-text').textContent;
+      copyToClipboardWithFallback(link, 'Edit link copied! Save it somewhere safe.');
+    }
+
+    /* ============================================================
+       SHARE (public) LINK
+       ============================================================ */
+    function copyShareLink() {
+      if (!currentSlug) return;
+      const link = `${window.location.origin}/b/${currentSlug}`;
+      copyToClipboardWithFallback(link, 'Page link copied! Paste it in your bio, website, or QR code.');
+    }
+
+    function copyToClipboardWithFallback(text, successMsg) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          alert(successMsg);
+        }).catch(() => {
+          window.prompt('Copy this link:', text);
+        });
+      } else {
+        window.prompt('Copy this link:', text);
+      }
+    }
+  </script>
+</body>
+</html>

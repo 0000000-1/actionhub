@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "description": "Only used if you deploy this project via Cloudflare Pages instead of a plain Worker (wrangler deploy). If you're using wrangler.toml + `wrangler deploy` as the main path, this file is not read and can be ignored/deleted.",
+
+  "include": [
+    "/api/*",
+    "/b/*"
+  ],
+  "exclude": [
+    "/favicon.ico",
+    "/robots.txt"
+  ]
+}
