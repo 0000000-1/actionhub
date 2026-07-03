@@ -477,7 +477,7 @@
     function calculateCorporateHours() {
       const currentHour = new Date().getHours();
       const badge = document.getElementById('live-status');
-      if (currentHour >= 9 && currentHour < 18) {
+      if (currentHour >= 9 && currentHour < 20) {
         badge.textContent = '● Open Now'; badge.className = 'status-badge open';
       } else {
         badge.textContent = '● Out of Office'; badge.className = 'status-badge closed';
