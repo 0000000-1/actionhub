@@ -32,11 +32,11 @@
  * -----------------------------------------------------------------
  */
 
-const MAX_LINKS = 8;
+const MAX_LINKS = 10;
 const MAX_TITLE_LEN = 60;
 const MAX_SUB_LEN = 120;
 const MAX_LINK_TITLE_LEN = 60;
-const MAX_IMAGE_BYTES = 76800; // ~75KB, matches the frontend's own cap
+const MAX_IMAGE_BYTES = 100000; // ~75KB, matches the frontend's own cap
 const MAX_STATE_JSON_BYTES = 120000;
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MIN_SLUG_LEN = 3;
